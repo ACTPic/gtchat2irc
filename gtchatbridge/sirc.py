@@ -54,6 +54,7 @@ class SockWrap():
     def sendall(self, s):
         try: self.s.sendall(s.replace("\n", "\r\n"))
         except Exception, e: pass
+        print "Sending to socket:", s
     def recv(self, n):
         return self.s.recv(n)
     def close(self):
@@ -99,10 +100,10 @@ class DummyUser:
         return fp
     def sendto(self, to, msg, IRC_ID = None):
         if IRC_ID == None: IRC_ID = self.IRC_ID
-        user = self.s.nicks[to]
+        user = self.s.nicks[to.lower()]
         user.send(":%s NOTICE %s :%s\n" % (IRC_ID, to, msg))
     def hasflag(self, user, flag):
-        try: user = self.s.nicks[user]
+        try: user = self.s.nicks[user.lower()]
         except: return False
         return flag in user.flags
 
@@ -860,7 +861,7 @@ class IRCHandler(threading.Thread):
     def IRC_oper(self, (nick, passwd)):
         """2"""
         if nick == 'root' and passwd == 'reindeerflotilla':
-            self.setmode('o')
+            pass#self.setmode('o')
 
     def IRC_who(self, (chan,)):
         """1"""
@@ -1026,6 +1027,12 @@ class IRCHandler(threading.Thread):
         self.s.sendall(msg)
 
     def run(self):
+        try:
+            self._run()
+        except:
+            import pdb; pdb.xpm()
+
+    def _run(self):
         s = self.s
         s.sendall(":%s NOTICE AUTH :***Welcome to HC's IRC server; please wait...\n" % self.host)
         s.sendall(":%s NOTICE AUTH :***Please register now.\n" % self.host)
