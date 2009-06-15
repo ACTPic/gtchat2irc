@@ -688,7 +688,8 @@ class IRCChannel(threading.Thread):
     def who(self):
         return [(user, (user.data['nick'] in self.flags) and ('o' in self.flags[user])) for user in self.users]
 
-    def isempty(self): return len(self.users) == 0
+    def isempty(self): 
+        return len(self.users) == 0 and self.name[0] != "!"
 
     def getmodes(self):
         modes = "+" + ''.join(self.flags[self.name])
@@ -888,13 +889,15 @@ class IRCHandler(threading.Thread):
         for chan in chans.split(","):
             chan = chan.strip()
             if len(chan) < 1: chan = '_' # hack
-            if (chan[0] != '#') or (len(chan.split(" ")) != 1):
+            if (chan[0] not in '#!') or (len(chan.split(" ")) != 1):
                 chan = chan.split(' ')[0]
                 if not self.hasmode('e'): raise IRCException("I don't think so, dude", 480, chan)
             try:
                 self.server.lock.acquire_lock()
                 try: c = self.channels[chan]
-                except:
+                except KeyError:
+                    if chan[0] == "!":
+                        raise IRCException("Channel not found", 480, chan)
                     c = IRCChannel(self.host, chan)
                     self.channels[chan] = c
                     c.start()
