@@ -2,9 +2,10 @@
 import sys, os, re
 import mechanize
 
-username = "gwtest"
-password = "fnord"
-room = "Ruheraum"
+
+sys.path.append("..")
+
+from gtchatbridge import config
 
 b = mechanize.Browser(
 	factory=mechanize.DefaultFactory(i_want_broken_xhtml_support=True)
@@ -15,9 +16,9 @@ b.open("http://www.psychose-chat.de")
 b.follow_link(nr=0)
 b.select_form(nr=0)
 
-b["username"] = username 
-b["password"] = password
-b["room"] = [room]
+b["username"] = config.username 
+b["password"] = config.password
+b["room"] = [config.room]
 b.submit()
 res = b.follow_link(nr=0)
 content = res.read()

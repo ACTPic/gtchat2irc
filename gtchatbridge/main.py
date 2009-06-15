@@ -13,13 +13,62 @@ import sys
 
 sys.path.append("..")
 
-from gtchatbridge import sirc
+from gtchatbridge import sirc, config
 
 
-class GTChatConnection(object):
-    def __init__(self, url):
-        self.url = url
-        self.rooms = {} # name -> set of names
+class GTChatOutgoing(object):
+    """ Interface """
+    def message(self, txt):
+        pass
+
+    def set_away(self, txt):
+        pass
+
+
+class GTChatIncoming(object):
+    def __init__(self, server, roomname):
+        self.server = server
+        self.roomname = roomname
+        self.users = {} # nick -> GTChatUser()
+
+        # init the empty channel
+        self.channel = chan = "!" + roomname
+        try:
+            self.server.lock.acquire_lock()
+            try:
+                c = self.server.channels[chan]
+            except KeyError:
+                c = sirc.IRCChannel(self.server.host, chan)
+                self.server.channels[chan] = c
+                c.start()
+        finally:
+            self.server.lock.release_lock()
+
+    def sanitize_nick(self, nick):
+        return nick
+
+    def join(self, nick, flags=()):
+        self._get_user(nick).join(self.channel)
+
+    def part(self, nick):
+        self._get_user(nick).part(self.channel)
+    quit = part
+
+    def message(self, nick, msg): # XXX implement me
+        pass
+
+    def nickchange(self, old, new):
+        user = _get_user(old)
+        user.nick(new)
+
+    def set_away(self, nick, away_status): # XXX not implemented
+        pass
+
+    def _get_user(self, nick):
+        nick_sanitized = self.sanitize_nick(nick)
+        IRC_ID = "%s!~%s@%s" % (nick_sanitized, 'webchatuser', 'somehost.invalid')
+        user = self.users.setdefault(nick, GTChatUser(nick_sanitized, IRC_ID, self.server))
+        return user
 
 
 class GTChatUser(sirc.DummyUser):
@@ -43,7 +92,6 @@ class GTChatUser(sirc.DummyUser):
     #self.data['away'] = reason
 
     def join(self, chan):
-        chan = chan.strip()
         try:
             self.server.lock.acquire_lock()
             try:
@@ -53,26 +101,36 @@ class GTChatUser(sirc.DummyUser):
                 self.server.channels[chan] = c
                 c.start()
         finally: self.server.lock.release_lock()
-        #if c.isbanned(self): raise IRCException("You have been banned from this channel", 480, chan)
         c.add(self)
         self.server.chanserv.event_join(self, c)
 
-    def IRC_part(self, chan):
-            self.server.lock.acquire_lock()
+    def nick(self, nick):
+        self.server.lock.acquire_lock()
+        try:
+            del self.server.nicks[self.data['nick'].lower()]
+            self.data['nick'] = nick
+            self.server.nicks[nick.lower()] = self
+            # XXX send nick change message!
+        finally:
+            self.server.lock.release_lock()
+
+    def part(self, chan):
+        self.server.lock.acquire_lock()
+        try:
             try:
-                try:
-                    c = self.server.channels[chan]
-                except:
-                    return
-            finally:
-                self.server.lock.release_lock()
+                c = self.server.channels[chan]
+            except:
+                return
+        finally:
+            self.server.lock.release_lock()
+
     def _part(self, c):
         c.remove(self, True, reason)
         self.server.chanserv.event_part(self, c)
         if c.isempty():
             del self.server.channels[chan]
 
-    def do_quit(self, reason):
+    def quit(self, reason):
         self.server.nickserv.event_leave(self)
         self.server.lock.acquire_lock()
         try:
@@ -94,27 +152,29 @@ class GTChatUser(sirc.DummyUser):
 import threading
 
 class TestThread(threading.Thread):
-    def __init__(self, a, b):
-        self.a = a
-        self.b = b
+    def __init__(self, conn):
+        self.conn = conn
         threading.Thread.__init__(self)
-    def run(self):
-        import time
-        time.sleep(10)
-        self.a(self.b())
 
+    def run(self):
+        print "Simulating webchat"
+        self.conn.join("rudi")
+
+    def sendmsg(self, txt):
+        print "Sending to webchat", txt
 
 
 def run_on_port(port):
-    s = sirc.IRCServer(('0.0.0.0', port), "localhost")
-    a = GTChatUser("nick", "ID", s)
-    TestThread(a.join, lambda: s.channels.items()[0][0]).start()
-    print "\nListening on port %d" % port
+    s = sirc.IRCServer((config.listen_ip, port), "chat.invalid")
+    print "\nListening on %s:%d" % (config.listen_ip, port)
+
+    conn = GTChatOutgoing(s, config.room)
+    t = TestThread(conn)
     s.run()
 
 
 if __name__ == "__main__":
     import random
-    port = random.randint(2000, 10000)#6667
+    port = random.randint(2000, 10000)#config.port
     run_on_port(port)
 
