@@ -887,7 +887,7 @@ class IRCHandler(threading.Thread):
         """1--1"""
         if chans == None: chans = ''
         for chan in chans.split(","):
-            chan = chan.strip()
+            chan = chan.strip().lower()
             if len(chan) < 1: chan = '_' # hack
             if (chan[0] not in '#!') or (len(chan.split(" ")) != 1):
                 chan = chan.split(' ')[0]
@@ -992,7 +992,7 @@ class IRCHandler(threading.Thread):
 
     def IRC_privmsg(self, (dest, msg), type="PRIVMSG"):
         """2"""
-        if dest[0] == '#':
+        if dest[0] in '!#':
             try: c = self.channels[dest]
             except: raise IRCException("No such channel")
             if not c.ison(self):
