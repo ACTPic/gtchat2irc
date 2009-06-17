@@ -9,6 +9,8 @@ GTChat connection is established.
 
 TODO:
     * Why is the room name in my irc client corrupted?
+    * missing feature:
+        * the outgoing interface implementation
 """
 
 import sys

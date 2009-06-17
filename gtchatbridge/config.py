@@ -1,4 +1,5 @@
 # gtchat config
+url = "http://www.psychose-chat.de/cgi-bin/gtchat/chat.pl"
 username = "gwtest"
 password = "fnord"
 room = "Ruheraum"
