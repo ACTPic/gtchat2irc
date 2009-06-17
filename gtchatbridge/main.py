@@ -27,6 +27,9 @@ class GTChatOutgoingInterface(object):
     def set_away(self, txt):
         pass
 
+    def change_nick(self, newnick):
+        pass
+
 
 class GTChatIncoming(object):
     def __init__(self, server, roomname, outgoing_proxy=None):
@@ -64,7 +67,7 @@ class GTChatIncoming(object):
 
     def nickchange(self, old, new):
         user = self._get_user(old)
-        user.nick(new)
+        user.nick(new, self.users.keys())
 
     def set_away(self, nick, away_status):
         _get_user(nick).set_away(away_status)
@@ -96,11 +99,23 @@ class GTChatUser(sirc.DummyUser):
             incoming_proxy.dispatcher = self
 
     def send(self, msg):
-        m_user, m_cmd, m_self, m_message = (self.TranslateMessage(msg) + [""])[:4]
+        msgparts = self.TranslateMessage(msg.strip())
+        m_cmd = msgparts[1]
         m_cmd = m_cmd.lower()
-        m_message = m_message[:-1]
         if m_cmd == 'privmsg':
+            m_user, _, m_self, m_message = msgparts
             self.privmsg(m_user, m_self, msg, m_message)
+        elif m_cmd == 'nick':
+            # does not work yet because sirc does not support it
+            # yet
+            m_user, _, newnick = msgparts # XXX we should check m_user here
+            self.outgoing_proxy.change_nick(newnick)
+        elif m_cmd == 'away':
+            if len(msgparts) == 3:
+                msg = msgparts[3]
+            else:
+                msg = None
+            self.outgoing_proxy.set_away(msg)
         else:
             print self.data['nick'], "did not understand", msg
 
@@ -124,7 +139,7 @@ class GTChatUser(sirc.DummyUser):
         c.add(self)
         self.server.chanserv.event_join(self, c)
 
-    def nick(self, nick):
+    def nick(self, nick, exempt_list):
         self.server.lock.acquire_lock()
         try:
             oldnick = self.data['nick'].lower()
@@ -136,7 +151,7 @@ class GTChatUser(sirc.DummyUser):
                 c = self.server.channels[self.channel]
             except KeyError:
                 raise IRCException("No such channel")
-            c.sendall(":%s NICK %s\n" % (old_id, nick))
+            c.sendall(":%s NICK %s\n" % (old_id, nick), exempt_list)
         finally:
             self.server.lock.release_lock()
 
@@ -217,6 +232,12 @@ class TestThread(threading.Thread):
     def message(self, txt, dest=None): # None -> current channel, otherwise nick
         """ This is a callback. """
         print "Sending to webchat (dest %s): " % dest, txt
+
+    def set_away(self, txt):
+        print "Setting away msg:", txt
+
+    def change_nick(self, newnick):
+        print "Changing nick to ", newnick
 
 
 def generate_join_func(incoming):
