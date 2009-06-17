@@ -889,15 +889,13 @@ class IRCHandler(threading.Thread):
         for chan in chans.split(","):
             chan = chan.strip().lower()
             if len(chan) < 1: chan = '_' # hack
-            if (chan[0] not in '#!') or (len(chan.split(" ")) != 1):
+            if (chan[0] not in '#' or len(chan.split(" ")) != 1) and not force:
                 chan = chan.split(' ')[0]
                 if not self.hasmode('e'): raise IRCException("I don't think so, dude", 480, chan)
             try:
                 self.server.lock.acquire_lock()
                 try: c = self.channels[chan]
                 except KeyError:
-                    if chan[0] == "!":
-                        raise IRCException("Channel not found", 480, chan)
                     c = IRCChannel(self.host, chan)
                     self.channels[chan] = c
                     c.start()
@@ -1110,6 +1108,7 @@ class IRCHandler(threading.Thread):
                     self.data['mode'] = ['i']
                     self.data['initialized'] = True
                     self.server.nickserv.event_register(self)
+                    self.server.event_join_finished(self)
         if not self.IRC_hasquit: self.do_quit("Timeout")
         try: del self.server.nicks[self.data['nick']]
         except Exception, e: pass
@@ -1123,6 +1122,7 @@ class IRCServer:
         self.lock = threading.Lock()
         self.clients = {}
         self.channels = {}
+        self.event_join_finished = lambda user: None
         CHANSERV = ChanServ(self, self.db)
         NICKSERV = NickServ(self, self.db)
         HELPSERV = HelpServ(self, self.db)

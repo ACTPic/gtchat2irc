@@ -8,7 +8,7 @@ In this file, the IRC server is instantiated and the
 GTChat connection is established.
 
 TODO:
-    * ...
+    * Why is the room name in my irc client corrupted?
 """
 
 import sys
@@ -63,16 +63,16 @@ class GTChatIncoming(object):
         self._get_user(nick).message(dest or self.channel, msg, self.users.keys())
 
     def nickchange(self, old, new):
-        user = _get_user(old)
+        user = self._get_user(old)
         user.nick(new)
 
-    def set_away(self, nick, away_status): # XXX not implemented
-        pass
+    def set_away(self, nick, away_status):
+        _get_user(nick).set_away(away_status)
 
     def _get_user(self, nick):
         nick_sanitized = self.sanitize_nick(nick)
         IRC_ID = "%s!~%s@%s" % (nick_sanitized, 'webchatuser', 'somehost.invalid')
-        user = self.users.setdefault(nick, GTChatUser(nick_sanitized, IRC_ID, self.server, self))
+        user = self.users.setdefault(nick, GTChatUser(nick_sanitized, IRC_ID, self.server, self, self.channel))
         return user
 
     def find_new_dispatcher(self, user):
@@ -85,10 +85,11 @@ class GTChatIncoming(object):
 
 
 class GTChatUser(sirc.DummyUser):
-    def __init__(self, nick, ID, server, incoming_proxy):
+    def __init__(self, nick, ID, server, incoming_proxy, channel):
         sirc.DummyUser.__init__(self, nick, ID)
         self.incoming_proxy = incoming_proxy
         self.server = server
+        self.channel = channel
         self.init()
 
         if incoming_proxy.dispatcher is None:
@@ -104,12 +105,11 @@ class GTChatUser(sirc.DummyUser):
             print self.data['nick'], "did not understand", msg
 
     def privmsg(self, user, dest, rawmsg, msg):
-        print self, "got", rawmsg
         if self.incoming_proxy.dispatcher is self or dest == self.data['nick']:
-            print "I have to dispatch this message to the webchat!"
             self.incoming_proxy.outgoing_proxy.message(msg, [None, dest][dest == self.data['nick']])
 
-    #self.data['away'] = reason
+    def set_away(self, msg=None): # None -> reset away
+        self.data['away'] = msg
 
     def join(self, chan):
         try:
@@ -127,10 +127,16 @@ class GTChatUser(sirc.DummyUser):
     def nick(self, nick):
         self.server.lock.acquire_lock()
         try:
-            del self.server.nicks[self.data['nick'].lower()]
+            oldnick = self.data['nick'].lower()
+            old_id = self.IRC_ID
+            del self.server.nicks[oldnick]
             self.data['nick'] = nick
-            self.server.nicks[nick.lower()] = self
-            # XXX send nick change message!
+            self.init()
+            try:
+                c = self.server.channels[self.channel]
+            except KeyError:
+                raise IRCException("No such channel")
+            c.sendall(":%s NICK %s\n" % (old_id, nick))
         finally:
             self.server.lock.release_lock()
 
@@ -206,10 +212,17 @@ class TestThread(threading.Thread):
         self.conn.message("rudi", "hallo, ich bin rudi")
         sleep(3)
         self.conn.message("herbert", "hallo rudi")
+        self.conn.nickchange("herbert", "hannah")
 
     def message(self, txt, dest=None): # None -> current channel, otherwise nick
         """ This is a callback. """
         print "Sending to webchat (dest %s): " % dest, txt
+
+
+def generate_join_func(incoming):
+    def join_user_to_channel(user):
+        user.IRC_join((incoming.channel, ), True)
+    return join_user_to_channel
 
 
 def run_on_port(port):
@@ -217,6 +230,7 @@ def run_on_port(port):
     print "\nListening on %s:%d" % (config.listen_ip, port)
 
     conn = GTChatIncoming(s, config.room)
+    s.event_join_finished = generate_join_func(conn)
     t = TestThread(conn)
     t.start()
     s.run()
