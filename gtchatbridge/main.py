@@ -11,6 +11,7 @@ TODO:
     * Why is the room name in my irc client corrupted?
     * missing feature:
         * the outgoing interface implementation
+    * send /alive
 """
 
 import sys
@@ -247,6 +248,10 @@ def generate_join_func(incoming):
         user.IRC_join((incoming.channel, ), True)
     return join_user_to_channel
 
+def generate_away_func(outgoing):
+    def event_away(user, msg):
+        outgoing.set_away(msg)
+    return event_away
 
 def run_on_port(port):
     s = sirc.IRCServer((config.listen_ip, port), "chat.invalid")
@@ -255,6 +260,7 @@ def run_on_port(port):
     conn = GTChatIncoming(s, config.room)
     s.event_join_finished = generate_join_func(conn)
     t = TestThread(conn)
+    s.event_user_away = generate_away_func(t)
     t.start()
     s.run()
 
