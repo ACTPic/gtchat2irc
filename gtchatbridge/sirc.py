@@ -823,6 +823,7 @@ class IRCHandler(threading.Thread):
     def IRC_away(self, (reason,)):
         """0-1"""
         if reason != None and reason.strip() == '': reason = None # hack
+        self.server.event_user_away(self.data['nick'], reason)
         if reason == None:
             try: del self.data['away']
             except: pass
@@ -1123,6 +1124,7 @@ class IRCServer:
         self.clients = {}
         self.channels = {}
         self.event_join_finished = lambda user: None
+        self.event_user_away = lambda user, msg: None
         CHANSERV = ChanServ(self, self.db)
         NICKSERV = NickServ(self, self.db)
         HELPSERV = HelpServ(self, self.db)
