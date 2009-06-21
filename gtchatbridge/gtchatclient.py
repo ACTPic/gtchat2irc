@@ -29,15 +29,7 @@ class HTTP10Handler(urllib2.AbstractHTTPHandler):
 HTTP10Opener = urllib2.build_opener(HTTP10Handler)
 
 
-class ChatDispatcher(asyncore.file_dispatcher):
-    def set_chatconnector(self, connector):
-        self.connector = connector
-
-    def handle_read(self):
-        data = self.recv(16 * 1024)
-        print "DATA FROM CHAT: ", data
-        self.process_string(data)
-
+class ChatParser(object):
     def process_string(self, string):
         parser = etree.HTMLParser()
         try:
@@ -79,6 +71,19 @@ class ChatDispatcher(asyncore.file_dispatcher):
             msg += "".join(txt_segments[2:])
             print "%s Message by %s: %s" % (["", "private"][is_private], nick, msg)
 
+
+
+class ChatDispatcher(asyncore.file_dispatcher):
+    def set_chatconnector(self, connector):
+        self.connector = connector
+
+    def set_chatparser(self, chatparser):
+        self.chatparser = chatparser
+
+    def handle_read(self):
+        data = self.recv(16 * 1024)
+        print "DATA FROM CHAT: ", data
+        self.chatparser.process_string(data)
 
     def handle_write(self):
         pass
@@ -129,6 +134,7 @@ class GTChatConnector:
 
         dispatcher = ChatDispatcher(data_socket)
         dispatcher.set_chatconnector(self)
+        dispatcher.set_chatparser(ChatParser())
         asyncore.loop()
 
     def run(self):
@@ -139,7 +145,5 @@ class GTChatConnector:
 
 
 if __name__ == '__main__':
-    test_data = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">\n<html><body><font color="#00bb00"><b><a href="javascript:insertText(\'/msg xorEaxEax \')" onclick="insertText(\'/msg xorEaxEax \');return false;" style="color:#00bb00">xorEaxEax</a> (zu gwtest):</b> test</font></body></html>'
-    #ChatDispatcher(sys.stdin).process_string(test_data)
     GTChatConnector().run()
 
