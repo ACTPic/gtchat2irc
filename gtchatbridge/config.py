@@ -2,7 +2,7 @@
 url = "http://www.psychose-chat.de/cgi-bin/gtchat/chat.pl"
 username = "gwtest"
 password = "fnord"
-room = "Ruheraum"
+room = "Lobby" #"Ruheraum"
 
 # irc config
 port = 6667

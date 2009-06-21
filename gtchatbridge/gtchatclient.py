@@ -38,8 +38,8 @@ class ChatParser(object):
 
     def parse_string(self, string):
         parser = etree.HTMLParser()
-        if not string:
-            string = " "
+        if not string.strip():
+            string = "<b></b>"
         tree = etree.parse(StringIO(string), parser)
         return tree
 
@@ -90,11 +90,12 @@ class ChatParser(object):
             self.gci.message(nick, msg, [None, True][is_private])
 
         # XXX missing: recognise nick changes and away messages
+        # XXX catch all unparsed message parts here
 
 
 class ChatDispatcher(asyncore.file_dispatcher):
-    def set_chatconnector(self, connector):
-        self.connector = connector
+    def set_idletask(self, idletask):
+        self.idletask = idletask
 
     def set_chatparser(self, chatparser):
         self.chatparser = chatparser
@@ -108,7 +109,12 @@ class ChatDispatcher(asyncore.file_dispatcher):
             import pdb; pdb.xpm()
 
     def handle_write(self):
-        pass
+        if not hasattr(self, "lastwrite"):
+            self.lastwrite = 0
+        if time.time() - self.lastwrite > 10:
+            self.idletask()
+            self.lastwrite = time.time()
+        time.sleep(0.1)
 
     def handle_close(self):
         try:
@@ -159,8 +165,8 @@ class GTChatConnector(threading.Thread):
         data_socket = data_socket_urlobj.fp._sock.fp._sock
 
         dispatcher = ChatDispatcher(data_socket)
-        dispatcher.set_chatconnector(self)
         dispatcher.set_chatparser(ChatParser(self, self.gci))
+        dispatcher.set_idletask(self.idle_task)
         asyncore.loop()
 
     def run(self):
@@ -184,8 +190,11 @@ class GTChatConnector(threading.Thread):
         for user in parting_users:
             self.gci.part(user)
         for user, status in away_dict.items():
-            self.gci.set_away(user, [None, "XXX Unknown"][status])
+            self.gci.set_away(user, [None, "XXX Unknown"][status]) # XXX
         self.users = new_set
+
+    def idle_task(self):
+        self.send_line("/alive")
 
     def send_line(self, line):
         url = config.url + "?id=%s&action=send" % self.session_id

@@ -9,9 +9,7 @@ GTChat connection is established.
 
 TODO:
     * Why is the room name in my irc client corrupted?
-    * missing feature:
-        * the outgoing interface implementation
-    * send /alive
+    * Add correct SIGINT handling
 """
 
 import sys
@@ -59,7 +57,6 @@ class GTChatIncoming(object):
         return nick
 
     def join(self, nick, flags=()):
-        print "XXX JOIN", nick
         self._get_user(nick).join(self.channel)
 
     def part(self, nick):
