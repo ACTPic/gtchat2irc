@@ -19,7 +19,7 @@ import sys
 
 sys.path.append("..")
 
-from gtchatbridge import sirc, config
+from gtchatbridge import sirc, config, gtchatclient
 
 
 class GTChatOutgoingInterface(object):
@@ -59,6 +59,7 @@ class GTChatIncoming(object):
         return nick
 
     def join(self, nick, flags=()):
+        print "XXX JOIN", nick
         self._get_user(nick).join(self.channel)
 
     def part(self, nick):
@@ -66,6 +67,8 @@ class GTChatIncoming(object):
     quit = part
 
     def message(self, nick, msg, dest=None): # dest == None i.e. channel
+        if dest is True:
+            dest = config.nick_of_local_user
         self._get_user(nick).message(dest or self.channel, msg, self.users.keys())
 
     def nickchange(self, old, new):
@@ -73,7 +76,7 @@ class GTChatIncoming(object):
         user.nick(new, self.users.keys())
 
     def set_away(self, nick, away_status):
-        _get_user(nick).set_away(away_status)
+        self._get_user(nick).set_away(away_status)
 
     def _get_user(self, nick):
         nick_sanitized = self.sanitize_nick(nick)
@@ -254,15 +257,17 @@ def generate_away_func(outgoing):
     return event_away
 
 def run_on_port(port):
-    s = sirc.IRCServer((config.listen_ip, port), "chat.invalid")
+    server = sirc.IRCServer((config.listen_ip, port), "chat.invalid")
     print "\nListening on %s:%d" % (config.listen_ip, port)
 
-    conn = GTChatIncoming(s, config.room)
-    s.event_join_finished = generate_join_func(conn)
-    t = TestThread(conn)
-    s.event_user_away = generate_away_func(t)
-    t.start()
-    s.run()
+    conn = GTChatIncoming(server, config.room)
+    server.event_join_finished = generate_join_func(conn)
+    #    t = TestThread(conn)
+    thread = gtchatclient.GTChatConnector(conn)
+    conn.outgoing_proxy = thread
+    server.event_user_away = generate_away_func(thread)
+    thread.start()
+    server.run()
 
 
 if __name__ == "__main__":

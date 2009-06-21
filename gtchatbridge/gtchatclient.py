@@ -2,10 +2,12 @@
 import sys
 import os
 import re
+import urllib
 import urllib2
 import asyncore
 import httplib
 import time
+import threading
 from StringIO import StringIO
 
 import mechanize
@@ -30,24 +32,40 @@ HTTP10Opener = urllib2.build_opener(HTTP10Handler)
 
 
 class ChatParser(object):
-    def process_string(self, string):
+    def __init__(self, chatconnector, gci):
+        self.chatconnector = chatconnector
+        self.gci = gci
+
+    def parse_string(self, string):
         parser = etree.HTMLParser()
-        try:
-            tree = etree.parse(StringIO(string), parser)
-        except:
-            import pdb; pdb.xpm()
-        self.process_tree(tree)
+        if not string:
+            string = " "
+        tree = etree.parse(StringIO(string), parser)
+        return tree
+
+    def process_userlist(self, string):
+        away_dict = {}
+        tree = self.parse_string(string)
+        row_elements = tree.xpath("/html/body/table/tr/td/table/tr[2]/td/table//tr")
+        for elem in row_elements:
+            nick = "".join(elem.itertext()).strip()
+            away = False
+            if nick[0] == "(" and nick[-1] == ")":
+                nick = nick[1:-1]
+                away = True
+            away_dict[nick] = away
+        return away_dict
 
     def process_tree(self, tree):
         script_elements = tree.xpath("(/html/body|/html/head)/script")
         for s_elem in script_elements:
             txt = s_elem.text # we assume that only one function is called
             if "updateUserList" in txt:
-                print "UPDATE USER LIST"
-            elif txt.strip().startswith('cgi="') or not txt.strip():
+                self.chatconnector.update_userlist(self.process_userlist)
+            elif txt.strip().startswith('cgi="') or not txt.strip() or "doLogin()" in txt:
                 continue
             else:
-                print "Unrecognized script tag", etree.tostring(txt)
+                print "Unrecognized script tag", txt
 
         for font_elem in tree.xpath("//font[b/a[substring(@onclick, 1, 10) = 'insertText']]"):
             a_elem = font_elem.xpath("b/a")[0]
@@ -69,8 +87,9 @@ class ChatParser(object):
                 print "Unrecognized message mode: ", txt_segments
                 continue
             msg += "".join(txt_segments[2:])
-            print "%s Message by %s: %s" % (["", "private"][is_private], nick, msg)
+            self.gci.message(nick, msg, [None, True][is_private])
 
+        # XXX missing: recognise nick changes and away messages
 
 
 class ChatDispatcher(asyncore.file_dispatcher):
@@ -83,7 +102,10 @@ class ChatDispatcher(asyncore.file_dispatcher):
     def handle_read(self):
         data = self.recv(16 * 1024)
         print "DATA FROM CHAT: ", data
-        self.chatparser.process_string(data)
+        try:
+            self.chatparser.process_tree(self.chatparser.parse_string(data))
+        except:
+            import pdb; pdb.xpm()
 
     def handle_write(self):
         pass
@@ -96,13 +118,17 @@ class ChatDispatcher(asyncore.file_dispatcher):
         print "Verbindung geschlossen"
 
 
-class GTChatConnector:
-    def __init__(self):
+class GTChatConnector(threading.Thread):
+    def __init__(self, gci):
+        threading.Thread.__init__(self)
         self.browser = mechanize.Browser(
             factory=mechanize.DefaultFactory(i_want_broken_xhtml_support=True)
         )
         self.browser.set_handle_robots(False)
+
         self.do_quit = False
+        self.gci = gci
+        self.users = set()
 
     def login(self):
         b = self.browser
@@ -134,16 +160,53 @@ class GTChatConnector:
 
         dispatcher = ChatDispatcher(data_socket)
         dispatcher.set_chatconnector(self)
-        dispatcher.set_chatparser(ChatParser())
+        dispatcher.set_chatparser(ChatParser(self, self.gci))
         asyncore.loop()
 
     def run(self):
-        self.login()
         while not self.do_quit:
+            self.login()
             self.read_data()
-            time.sleep(10)
+            self.do_quit = True # XXX debugging
+            print "Disconnected, logging in again ..."
+            time.sleep(30)
+
+    def update_userlist(self, parse_func):
+        url = config.url + "?id=%s&action=userlist" % self.session_id
+        page = urllib2.urlopen(url).read()
+        away_dict = parse_func(page)
+
+        new_set = set(away_dict.keys())
+        joining_users = new_set - self.users
+        parting_users = self.users - new_set
+        for user in joining_users:
+            self.gci.join(user)
+        for user in parting_users:
+            self.gci.part(user)
+        for user, status in away_dict.items():
+            self.gci.set_away(user, [None, "XXX Unknown"][status])
+        self.users = new_set
+
+    def send_line(self, line):
+        url = config.url + "?id=%s&action=send" % self.session_id
+        page = urllib2.urlopen(url, urllib.urlencode(dict(text=line))).read()
+
+    # ----- Callback functions from the main module
+    def message(self, txt, dest=None): # None -> current channel, otherwise nick
+        line = ""
+        if dest is not None:
+            line += "/msg %s " % dest
+        line += txt + "\x01"
+        self.send_line(line)
+
+    def set_away(self, txt):
+        self.send_line("/away " + txt)
+        pass
+
+    def change_nick(self, newnick):
+        self.send_line("/nick " + newnick)
 
 
 if __name__ == '__main__':
-    GTChatConnector().run()
+    GTChatConnector(None).run()
 
