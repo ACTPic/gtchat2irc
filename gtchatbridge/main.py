@@ -119,6 +119,8 @@ class GTChatUser(sirc.DummyUser):
             else:
                 msg = None
             self.outgoing_proxy.set_away(msg)
+        elif m_cmd in ('notice', 'join', 'mode'):
+            pass # ignore
         else:
             print self.data['nick'], "did not understand", msg
 
