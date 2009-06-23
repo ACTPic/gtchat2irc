@@ -176,7 +176,7 @@ class GTChatConnector(threading.Thread):
     def read_data(self):
         data_url = config.url.replace("http://", "http10://") + "?id=%s&action=receive&dhtml=0" % self.session_id
         data_socket_urlobj = HTTP10Opener.open(data_url)
-        data_socket = data_socket_urlobj.fp._sock.fp._sock
+        data_socket = data_socket_urlobj.fp._sock.fp._sock.fileno()
 
         dispatcher = ChatDispatcher(data_socket)
         dispatcher.set_chatparser(ChatParser(self, self.gci))

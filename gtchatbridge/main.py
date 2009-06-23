@@ -270,7 +270,8 @@ def run_on_port(port):
 
 
 if __name__ == "__main__":
-    import random
-    port = random.randint(2000, 10000)#config.port
+    #import random
+    #port = random.randint(2000, 10000)
+    port = config.port
     run_on_port(port)
 
