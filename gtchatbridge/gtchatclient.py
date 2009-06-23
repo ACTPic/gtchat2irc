@@ -66,6 +66,7 @@ class ChatParser(object):
                 continue
             else:
                 print "Unrecognized script tag", txt
+            s_elem.getparent().remove(s_elem)
 
         for font_elem in tree.xpath("//font[b/a[substring(@onclick, 1, 10) = 'insertText']]"):
             a_elem = font_elem.xpath("b/a")[0]
@@ -78,19 +79,27 @@ class ChatParser(object):
             msg = ""
             is_private = False
             if "(zu" in txt_segments[1]:
-                msg = txt_segments[1].replace(" (zu ", "")[:-2] + ":"
+                msg = txt_segments[1].replace(" (zu ", "")[:-2] + ": "
             elif "(privat" in txt_segments[1]:
                 is_private = True
             elif ":" == txt_segments[1]:
                 pass
+            elif u' (fl\xfcstert an ' in txt_segments[1]:
+                continue
             else:
                 print "Unrecognized message mode: ", txt_segments
                 continue
-            msg += "".join(txt_segments[2:])
+            msg += "".join(txt_segments[2:]).strip()
             self.gci.message(nick, msg, [None, True][is_private])
+            font_elem.getparent().remove(font_elem)
 
-        # XXX missing: recognise nick changes and away messages
-        # XXX catch all unparsed message parts here
+        spare_segments = list(tree.getroot().itertext())
+        if spare_segments:
+            # XXX missing: recognise nick changes and away messages
+            #XXX DECODE remaining text ['\n[ ', 'Psychose-Chat:', ' xorEaxEax? xorEaxEaxTest! ]']
+            #XXX DECODE remaining text ['\n[ ', 'Psychose-Chat:', ' xorEaxEax ist jetzt weg: weg ]']
+            #XXX DECODE remaining text ['\n[ ', 'Psychose-Chat:', ' xorEaxEax ist wieder da ]']
+            print "XXX remaining text", spare_segments
 
 
 class ChatDispatcher(asyncore.file_dispatcher):
@@ -102,11 +111,16 @@ class ChatDispatcher(asyncore.file_dispatcher):
 
     def handle_read(self):
         data = self.recv(16 * 1024)
-        print "DATA FROM CHAT: ", data
+        #print "DATA FROM CHAT: ", data # XXX debugging
         try:
             self.chatparser.process_tree(self.chatparser.parse_string(data))
         except:
-            import pdb; pdb.xpm()
+            import pdb
+            if hasattr(pdb, "xpm"):
+                pdb.xpm()
+            else:
+                import traceback
+                traceback.print_exc()
 
     def handle_write(self):
         if not hasattr(self, "lastwrite"):

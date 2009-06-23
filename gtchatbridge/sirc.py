@@ -54,7 +54,6 @@ class SockWrap():
     def sendall(self, s):
         try: self.s.sendall(s.replace("\n", "\r\n"))
         except Exception, e: pass
-        print "Sending to socket:", s
     def recv(self, n):
         return self.s.recv(n)
     def close(self):
