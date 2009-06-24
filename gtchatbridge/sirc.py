@@ -689,7 +689,7 @@ class IRCChannel(threading.Thread):
         return [(user, (user.data['nick'] in self.flags) and ('o' in self.flags[user])) for user in self.users]
 
     def isempty(self): 
-        return len(self.users) == 0 and self.name[0] != "!"
+        return len(self.users) == 0 and self.name[0] != "&"
 
     def getmodes(self):
         modes = "+" + ''.join(self.flags[self.name])
@@ -991,7 +991,7 @@ class IRCHandler(threading.Thread):
 
     def IRC_privmsg(self, (dest, msg), type="PRIVMSG"):
         """2"""
-        if dest[0] in '!#':
+        if dest[0] in '&#':
             try: c = self.channels[dest]
             except: raise IRCException("No such channel")
             if not c.ison(self):
