@@ -1032,7 +1032,12 @@ class IRCHandler(threading.Thread):
         try:
             self._run()
         except:
-            import pdb; pdb.xpm()
+            import pdb
+            if hasattr(pdb, "xpm"):
+                pdb.xpm()
+            else:
+                import traceback
+                traceback.print_exc()
 
     def _run(self):
         s = self.s
