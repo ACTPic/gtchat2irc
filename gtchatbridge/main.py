@@ -65,8 +65,6 @@ class GTChatIncoming(object):
     quit = part
 
     def message(self, nick, msg, dest=None): # dest == None i.e. channel
-        if dest is True:
-            dest = config.nick_of_local_user
         self._get_user(nick).message(dest or self.channel, msg, self.users.keys())
 
     def nickchange(self, old, new):
@@ -194,6 +192,8 @@ class GTChatUser(sirc.DummyUser):
     def message(self, dest, msg, exempt_list):
         if isinstance(msg, unicode):
             msg = msg.encode("latin-1")
+        if dest is True:
+            dest = self.server.clients.values()[0][0].data['nick'] # XXX choose correct client
         if dest[0] == '&':
             try:
                 c = self.server.channels[dest]
@@ -202,7 +202,7 @@ class GTChatUser(sirc.DummyUser):
             c.sendall(":%s PRIVMSG %s :%s\n" % (self.IRC_ID, c.name, msg), exempt_list)
         else:
             try:
-                c = self.nicks[dest.lower()]
+                c = self.server.nicks[dest.lower()]
             except KeyError:
                 raise IRCException("No such user")
             c.send(":%s PRIVMSG %s :%s\n" % (self.IRC_ID, dest, msg))
@@ -212,7 +212,6 @@ class GTChatUser(sirc.DummyUser):
         self.server.nicks[self.data['nick'].lower()] = self
         self.IRC_ID = "%s!~%s@%s" % (self.data['nick'], self.data['user'][0], "server")
         self.data['mode'] = ['i']
-        self.server.nickserv.event_register(self)
 
 
 import threading

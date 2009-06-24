@@ -74,7 +74,7 @@ class ChatParser(object):
             if not match:
                 print "Unrecognized a tag", etree.tostring(a_elem)
                 continue
-            nick = match.groups()[0]
+            nick = match.groups()[0].encode("utf-8")
             txt_segments = list(font_elem.itertext())
             msg = ""
             is_private = False
@@ -195,6 +195,7 @@ class GTChatConnector(threading.Thread):
         url = config.url + "?id=%s&action=userlist" % self.session_id
         page = urllib2.urlopen(url).read()
         away_dict = parse_func(page)
+        away_dict = dict((k.encode("utf-8"), v) for k, v in away_dict.items())
 
         new_set = set(away_dict.keys())
         joining_users = new_set - self.users
@@ -230,7 +231,7 @@ class GTChatConnector(threading.Thread):
         self.send_line(line)
 
     def set_away(self, txt):
-        self.send_line("/away " + txt)
+        self.send_line("/away " + (txt or ''))
         pass
 
     def change_nick(self, newnick):
