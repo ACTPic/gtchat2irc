@@ -43,7 +43,7 @@ class GTChatIncoming(object):
         self.dispatcher = None # the user which dispatches the messages to the webchat
 
         # init the empty channel
-        self.channel = chan = ("!" + roomname).lower()
+        self.channel = chan = ("&" + roomname).lower()
         try:
             self.server.lock.acquire_lock()
             try:
@@ -194,7 +194,7 @@ class GTChatUser(sirc.DummyUser):
             self.server.lock.release_lock()
 
     def message(self, dest, msg, exempt_list):
-        if dest[0] == '!':
+        if dest[0] == '&':
             try:
                 c = self.server.channels[dest]
             except KeyError:
