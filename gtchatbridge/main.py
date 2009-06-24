@@ -78,8 +78,7 @@ class GTChatIncoming(object):
 
     def _get_user(self, nick):
         nick_sanitized = self.sanitize_nick(nick)
-        IRC_ID = "%s!~%s@%s" % (nick_sanitized, 'webchatuser', 'somehost.invalid')
-        user = self.users.setdefault(nick, GTChatUser(nick_sanitized, IRC_ID, self.server, self, self.channel))
+        user = self.users.setdefault(nick, GTChatUser(nick_sanitized, "", self.server, self, self.channel))
         return user
 
     def find_new_dispatcher(self, user):
@@ -271,9 +270,11 @@ def run_on_port(port):
 
 
 if __name__ == "__main__":
-    #import random
-    #port = random.randint(2000, 10000)
-    port = config.port
+    if config.port is None:
+        import random
+        port = random.randint(2000, 10000)
+    else:
+        port = config.port
     run_on_port(port)
     exit()  # kill gtchatclient thread too 
 
