@@ -57,22 +57,22 @@ class ChatParser(object):
         return away_dict
 
     def process_tree(self, tree):
-        script_elements = tree.xpath("(/html/body|/html/head)/script")
+        script_elements = tree.xpath("//script")
         for s_elem in script_elements:
             txt = s_elem.text # we assume that only one function is called
+            s_elem.getparent().remove(s_elem)
             if "updateUserList" in txt:
                 self.chatconnector.update_userlist(self.process_userlist)
             elif txt.strip().startswith('cgi="') or not txt.strip() or "doLogin()" in txt:
                 continue
             else:
                 print "Unrecognized script tag", txt
-            s_elem.getparent().remove(s_elem)
 
         for font_elem in tree.xpath("//font[b/a[substring(@onclick, 1, 10) = 'insertText']]"):
             a_elem = font_elem.xpath("b/a")[0]
             match = re.search("/msg ([^ ]*) ", a_elem.attrib["onclick"])
             if not match:
-                print "Unrecognized a tag", etree.tostring(a)
+                print "Unrecognized a tag", etree.tostring(a_elem)
                 continue
             nick = match.groups()[0]
             txt_segments = list(font_elem.itertext())
@@ -99,7 +99,7 @@ class ChatParser(object):
             #XXX DECODE remaining text ['\n[ ', 'Psychose-Chat:', ' xorEaxEax? xorEaxEaxTest! ]']
             #XXX DECODE remaining text ['\n[ ', 'Psychose-Chat:', ' xorEaxEax ist jetzt weg: weg ]']
             #XXX DECODE remaining text ['\n[ ', 'Psychose-Chat:', ' xorEaxEax ist wieder da ]']
-            print "XXX remaining text", spare_segments
+            print "XXX remaining text", spare_segments, " in tree ", etree.tostring(tree)
 
 
 class ChatDispatcher(asyncore.file_dispatcher):
