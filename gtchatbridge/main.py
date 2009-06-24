@@ -192,6 +192,8 @@ class GTChatUser(sirc.DummyUser):
             self.server.lock.release_lock()
 
     def message(self, dest, msg, exempt_list):
+        if isinstance(msg, unicode):
+            msg = msg.encode("latin-1")
         if dest[0] == '&':
             try:
                 c = self.server.channels[dest]

@@ -217,6 +217,12 @@ class GTChatConnector(threading.Thread):
 
     # ----- Callback functions from the main module
     def message(self, txt, dest=None): # None -> current channel, otherwise nick
+        try:
+            txt.decode("utf-8")
+        except UnicodeDecodeError:
+            pass
+        else:
+            txt = txt.decode("utf-8").encode("latin-1")
         line = ""
         if dest is not None:
             line += "/msg %s " % dest
