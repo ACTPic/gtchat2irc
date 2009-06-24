@@ -663,7 +663,8 @@ class IRCChannel(threading.Thread):
             self.flags[user.data['nick']] = []
             if not self.usersjoined:
                 self.usersjoined = True
-                self.flags[user.data['nick']].append('o')
+                if self.name[0] != '&':
+                    self.flags[user.data['nick']].append('o')
                 # self.setmode(CHANSERV, "+o %s" % user.data['nick'], False)
                 self.sendall(":%s MODE %s %s\n" % (self.host, self.name, self.getmodes()), (), False)
 
