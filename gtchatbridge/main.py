@@ -275,4 +275,5 @@ if __name__ == "__main__":
     #port = random.randint(2000, 10000)
     port = config.port
     run_on_port(port)
+    exit()  # kill gtchatclient thread too 
 
