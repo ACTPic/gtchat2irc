@@ -8,9 +8,9 @@ In this file, the IRC server is instantiated and the
 GTChat connection is established.
 
 TODO:
-    * Add correct SIGINT handling
     * Repair /whois in sirc and then add away msg parsing
     * Fix nick in sirc and add nick change parsing
+    * Add /me support
 """
 
 import sys
