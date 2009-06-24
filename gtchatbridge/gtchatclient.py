@@ -213,6 +213,7 @@ class GTChatConnector(threading.Thread):
     def send_line(self, line):
         url = config.url + "?id=%s&action=send" % self.session_id
         page = urllib2.urlopen(url, urllib.urlencode(dict(text=line))).read()
+        #print "send line return page is", page
 
     # ----- Callback functions from the main module
     def message(self, txt, dest=None): # None -> current channel, otherwise nick
