@@ -82,7 +82,7 @@ class GTChatIncoming(object):
         return user
 
     def find_new_dispatcher(self, user):
-        users = self.nicks.values()
+        users = self.users.values()
         users.remove(user)
         if users:
             self.dispatcher = users[0]
