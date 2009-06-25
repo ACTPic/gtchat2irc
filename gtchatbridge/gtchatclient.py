@@ -226,9 +226,9 @@ class GTChatConnector(threading.Thread):
             txt = txt.decode("utf-8").encode("latin-1")
         try:
             if dest is None:
-                raise UnicodeDecodeError
+                raise KeyError
             dest.decode("utf-8")
-        except UnicodeDecodeError:
+        except UnicodeDecodeError, KeyError:
             pass
         else:
             dest = dest.decode("utf-8").encode("latin-1")
