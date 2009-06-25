@@ -240,8 +240,8 @@ class GTChatConnector(threading.Thread):
         self.send_line(line)
 
     def set_away(self, txt):
-        self.send_line("/away " + (txt or ''))
-        pass
+        if txt is not None:
+            self.send_line("/away " + txt)
 
     def change_nick(self, newnick):
         self.send_line("/nick " + newnick)
