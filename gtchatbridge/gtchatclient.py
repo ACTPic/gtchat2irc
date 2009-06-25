@@ -233,7 +233,7 @@ class GTChatConnector(threading.Thread):
                 pass
             else:
                 dest = dest.decode("utf-8").encode("latin-1")
-           line += "/msg %s " % dest
+            line += "/msg %s " % dest
         line += txt + "\x01"
         self.send_line(line)
 
