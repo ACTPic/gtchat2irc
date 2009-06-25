@@ -224,18 +224,16 @@ class GTChatConnector(threading.Thread):
             pass
         else:
             txt = txt.decode("utf-8").encode("latin-1")
-        try:
-            if dest is None:
-                raise KeyError
-            dest.decode("utf-8")
-        except (UnicodeDecodeError, KeyError):
-            pass
-        else:
-            dest = dest.decode("utf-8").encode("latin-1")
 
         line = ""
         if dest is not None:
-            line += "/msg %s " % dest
+            try:
+                dest.decode("utf-8")
+            except UnicodeDecodeError:
+                pass
+            else:
+                dest = dest.decode("utf-8").encode("latin-1")
+           line += "/msg %s " % dest
         line += txt + "\x01"
         self.send_line(line)
 
