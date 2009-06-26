@@ -1000,7 +1000,7 @@ class IRCHandler(threading.Thread):
                 if (not c.hasflag(self.data['nick'], 'o')) and (not c.hasflag(self.data['nick'], 'h')) and (not c.hasflag(self.data['nick'], 'v')):
                     return
             c.sendall(":%s %s %s :%s\n" % (self.IRC_ID, type, c.name, msg), (self.data['nick'],))
-        elif dest[0].isalpha():
+        else:
             try: c = self.nicks[dest.lower()]
             except: raise IRCException("No such user")
             c.send(":%s %s %s :%s\n" % (self.IRC_ID, type, dest, msg))
