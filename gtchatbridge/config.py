@@ -7,4 +7,3 @@ room = "Lobby" #"Ruheraum"
 # irc config
 port = 6667
 listen_ip = "127.0.0.1"
-nick_of_local_user = "xorAxAx"
