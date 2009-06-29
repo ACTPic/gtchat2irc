@@ -79,14 +79,6 @@ class GTChatIncoming(object):
         user = self.users.setdefault(nick, GTChatUser(nick_sanitized, "", self.server, self, self.channel))
         return user
 
-    def find_new_dispatcher(self, user):
-        users = self.users.values()
-        users.remove(user)
-        if users:
-            self.dispatcher = users[0]
-        else:
-            self.dispatcher = None
-
 
 class GTChatUser(sirc.DummyUser):
     def __init__(self, nick, ID, server, incoming_proxy, channel):
@@ -162,7 +154,12 @@ class GTChatUser(sirc.DummyUser):
         self.server.lock.acquire_lock()
         try:
             if self.incoming_proxy.dispatcher is self:
-                self.incoming_proxy.find_new_dispatcher(self)
+                users = self.server.channel.users.values()
+                users.remove(self)
+                if users:
+                    self.dispatcher = users[0]
+                else:
+                    self.dispatcher = None
             try:
                 c = self.server.channels[chan]
             except KeyError:
