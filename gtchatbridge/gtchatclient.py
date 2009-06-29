@@ -95,11 +95,38 @@ class ChatParser(object):
 
         spare_segments = list(tree.getroot().itertext())
         if spare_segments:
-            # XXX missing: recognise nick changes and away messages
-            #XXX DECODE remaining text ['\n[ ', 'Psychose-Chat:', ' xorEaxEax? xorEaxEaxTest! ]']
-            #XXX DECODE remaining text ['\n[ ', 'Psychose-Chat:', ' xorEaxEax ist jetzt weg: weg ]']
-            #XXX DECODE remaining text ['\n[ ', 'Psychose-Chat:', ' xorEaxEax ist wieder da ]']
-            print "XXX remaining text", spare_segments, " in tree ", etree.tostring(tree)
+            if (len(spare_segments) < 4 and spare_segments[0].strip() == "["
+                    and spare_segments[-1].strip()[-1] == "]"):
+                msg = spare_segments[2].strip()
+                if "?" in msg:
+                    src_nick, target_nick = msg[:-1].split("?", 1)
+                    src_nick = src_nick.strip()
+                    target_nick = target_nick.strip()
+                    if target_nick[-1] == "!":
+                        target_nick = target_nick[:-1]
+                        assert " " not in target_nick and " " not in src_nick
+                        self.gci.nickchange(src_nick, target_nick)
+                        return
+                    # not a nick change
+                if "ist jetzt weg" in msg:
+                    msg_parts = msg.split("ist jetzt weg")
+                    if msg_parts[1][0] == ":":
+                        away_msg = msg_parts[1][1:-1].strip()
+                    else:
+                        away_msg = ""
+                    nick = msg_parts[0].strip()
+                    self.gci.set_away(nick, away_msg)
+                    return
+                elif "ist wieder da" in msg:
+                    msg_parts = msg.split("ist wieder da")
+                    nick = msg_parts[0].strip()
+                    self.gci.set_away(nick, None)
+                    return
+                elif msg.startswith(">>>") or msg.startswith("<<<"):
+                    return
+            # XXX missing: recognise other messages
+            self.gci.notice("Unparsed text: " + str(spare_segments))
+            # " in tree ", etree.tostring(tree)
 
 
 class ChatDispatcher(asyncore.file_dispatcher):

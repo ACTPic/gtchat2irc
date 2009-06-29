@@ -67,6 +67,13 @@ class GTChatIncoming(object):
     def message(self, nick, msg, dest=None): # dest == None i.e. channel
         self._get_user(nick).message(dest or self.channel, msg, self.users.keys())
 
+    def notice(self, msg):
+        try:
+            c = self.server.channels[self.channel]
+        except KeyError:
+            raise IRCException("No such channel")
+        c.sendall(":%s NOTICE %s :%s\n" % (self.server.host, c.name, msg))
+
     def nickchange(self, old, new):
         user = self._get_user(old)
         user.nick(new, self.users.keys())
@@ -154,7 +161,8 @@ class GTChatUser(sirc.DummyUser):
         self.server.lock.acquire_lock()
         try:
             if self.incoming_proxy.dispatcher is self:
-                users = self.server.channel.users.values()
+                users = self.server.channels[self.incoming_proxy.channel].users.values()
+                users &= self.incoming_proxy.users.values()
                 users.remove(self)
                 if users:
                     self.dispatcher = users[0]

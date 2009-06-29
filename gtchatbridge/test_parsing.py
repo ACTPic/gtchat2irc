@@ -5,10 +5,46 @@ sys.path.append("..")
 from gtchatbridge.gtchatclient import ChatParser
 
 
+class GCITest(object):
+    def __init__(self):
+        self.data = []
+
+    def message(self, nick, msg, dest=None): # dest == None i.e. channel
+        self.data.append(("MESSAGE", nick, msg, dest))
+
+    def set_away(self, nick, msg):
+        self.data.append(("AWAY", nick, msg))
+
+    def notice(self, msg):
+        raise Exception("Unparsed text remains!")
+
+    def nickchange(self, old, new):
+        self.data.append(("NICKCHANGE", old, new))
+
+
 def test_message():
     test_data = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">\n<html><body><font color="#00bb00"><b><a href="javascript:insertText(\'/msg xorEaxEax \')" onclick="insertText(\'/msg xorEaxEax \');return false;" style="color:#00bb00">xorEaxEax</a> (zu gwtest):</b> test</font></body></html>'
-    cp = ChatParser(None, None)
+    cp = ChatParser(None, GCITest())
     cp.process_tree(cp.parse_string(test_data))
+
+def test_notice():
+    part_msg = """    <html><body><p>[ <b>Psychose-Chat:</b> &lt;&lt;&lt; franni paliko Psychose-Chati - dass mir aber die unregelm&#228;&#223;igen litauischen Verben bis zum n&#228;chsten Mal sitzen! ]<br/></p></body></html>"""
+    join_msg = """<html><body><p>[ <b>Psychose-Chat:</b> &gt;&gt;&gt; biker strickt nebenher und tippt darum mit den F&#252;&#223;en. F&#252;reventuelle Tippfehler bitten wir um Verst&#228;ndnis. ]<br/></p></body></html>"""
+    away_msg = """<html><head/><body><p>
+[ <b>Psychose-Chat:</b> xorEaxEax ist jetzt weg: test ]<br/></p></body></html>"""
+    away_end_msg = """<html><head/><body><p>
+[ <b>Psychose-Chat:</b> xorEaxEax ist wieder da ]<br/><br/></p></body></html>"""
+    change_nick_msg = """<html><head/><body><p>
+[ <b>Psychose-Chat:</b> xorEaxFoo? xorEaxEax! ]<br/></p></body></html>"""
+    gci = GCITest()
+    cp = ChatParser(None, gci)
+    cp.process_tree(cp.parse_string(join_msg))
+    cp.process_tree(cp.parse_string(part_msg))
+    cp.process_tree(cp.parse_string(away_msg))
+    cp.process_tree(cp.parse_string(away_end_msg))
+    cp.process_tree(cp.parse_string(change_nick_msg))
+    assert gci.data == [('AWAY', 'xorEaxEax', 'test'), ('AWAY', 'xorEaxEax', None), ('NICKCHANGE', 'xorEaxFoo', 'xorEaxEax')]
+
 
 def test_urllist():
     d = ChatParser(None, None).process_userlist(userlist)
