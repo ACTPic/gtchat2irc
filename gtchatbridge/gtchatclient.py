@@ -125,12 +125,9 @@ class ChatDispatcher(asyncore.file_dispatcher):
     def handle_write(self):
         if not hasattr(self, "lastwrite"):
             self.lastwrite = 0
-            self.firstwrite = time.time()
         if time.time() - self.lastwrite > 10:
             self.idletask()
             self.lastwrite = time.time()
-        if time.time() - self.firstwrite > 2 * 3600: # 2 hours
-            self.close() # and relogin
         time.sleep(0.1)
 
     def handle_close(self):
