@@ -161,8 +161,8 @@ class GTChatUser(sirc.DummyUser):
         self.server.lock.acquire_lock()
         try:
             if self.incoming_proxy.dispatcher is self:
-                users = self.server.channels[self.incoming_proxy.channel].users.values()
-                users &= self.incoming_proxy.users.values()
+                users = set(self.server.channels[self.incoming_proxy.channel].users.values())
+                users &= set(self.incoming_proxy.users.values())
                 users.remove(self)
                 if users:
                     self.dispatcher = users[0]
