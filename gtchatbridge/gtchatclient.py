@@ -102,7 +102,7 @@ class ChatParser(object):
                     src_nick, target_nick = msg[:-1].split("?", 1)
                     src_nick = src_nick.strip()
                     target_nick = target_nick.strip()
-                    if target_nick[-1] == "!":
+                    if target_nick and target_nick[-1] == "!":
                         target_nick = target_nick[:-1]
                         assert " " not in target_nick and " " not in src_nick
                         self.gci.nickchange(src_nick, target_nick)
