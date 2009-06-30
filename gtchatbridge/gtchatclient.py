@@ -14,7 +14,7 @@ import mechanize
 from lxml import etree
 
 sys.path.append("..")
-from gtchatbridge import config
+from gtchatbridge import config, sirc
 
 
 # generate opener manually to enforce HTTP 1.0
@@ -63,7 +63,8 @@ class ChatParser(object):
             s_elem.getparent().remove(s_elem)
             if "updateUserList" in txt:
                 self.chatconnector.update_userlist(self.process_userlist)
-            elif txt.strip().startswith('cgi="') or not txt.strip() or "doLogin()" in txt:
+            elif (txt.strip().startswith('cgi="') or not txt.strip()
+                    or "doLogin()" in txt or "updateRoomList" in txt):
                 continue
             else:
                 print "Unrecognized script tag", txt
@@ -228,7 +229,10 @@ class GTChatConnector(threading.Thread):
         joining_users = new_set - self.users
         parting_users = self.users - new_set
         for user in joining_users:
-            self.gci.join(user)
+            try:
+                self.gci.join(user)
+            except sirc.IRCException:
+                pass
         for user in parting_users:
             self.gci.part(user)
         for user, status in away_dict.items():
