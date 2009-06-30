@@ -165,7 +165,7 @@ class GTChatUser(sirc.DummyUser):
                 users &= set(self.incoming_proxy.users.values())
                 users.remove(self)
                 if users:
-                    self.dispatcher = users[0]
+                    self.dispatcher = iter(users).next()
                 else:
                     self.dispatcher = None
             try:
