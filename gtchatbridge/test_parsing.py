@@ -36,6 +36,9 @@ def test_notice():
 [ <b>Psychose-Chat:</b> xorEaxEax ist wieder da ]<br/><br/></p></body></html>"""
     change_nick_msg = """<html><head/><body><p>
 [ <b>Psychose-Chat:</b> xorEaxFoo? xorEaxEax! ]<br/></p></body></html>"""
+    double_msg = """<html><head/><body><p>
+[ <b>Psychose-Chat:</b> xorEaxFoo? xorEaxEax! ]<br/></p><p>
+[ <b>Psychose-Chat:</b> xorEaxFoo? xorEaxEax! ]<br/></p></body></html>"""
     gci = GCITest()
     cp = ChatParser(None, gci)
     cp.process_tree(cp.parse_string(join_msg))
@@ -43,7 +46,11 @@ def test_notice():
     cp.process_tree(cp.parse_string(away_msg))
     cp.process_tree(cp.parse_string(away_end_msg))
     cp.process_tree(cp.parse_string(change_nick_msg))
-    assert gci.data == [('AWAY', 'xorEaxEax', 'test'), ('AWAY', 'xorEaxEax', None), ('NICKCHANGE', 'xorEaxFoo', 'xorEaxEax')]
+    cp.process_tree(cp.parse_string(double_msg))
+    assert gci.data == [('AWAY', 'xorEaxEax', 'test'), ('AWAY', 'xorEaxEax', None),
+            ('NICKCHANGE', 'xorEaxFoo', 'xorEaxEax'),
+            ('NICKCHANGE', 'xorEaxFoo', 'xorEaxEax'),
+            ('NICKCHANGE', 'xorEaxFoo', 'xorEaxEax')]
 
 
 def test_urllist():
