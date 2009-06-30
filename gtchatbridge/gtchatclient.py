@@ -129,7 +129,7 @@ class ChatParser(object):
                     continue
             # XXX missing: recognise other messages
             self.gci.notice("Unparsed text: " + str(spare_segments))
-            # " in tree ", etree.tostring(tree)
+            print "Unparsed tree ", etree.tostring(tree)
 
 
 class ChatDispatcher(asyncore.file_dispatcher):

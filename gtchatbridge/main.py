@@ -11,6 +11,8 @@ TODO:
     * Repair /whois in sirc and then add away msg parsing
     * Fix nick in sirc and add nick change parsing
     * Add /me support
+    * fix ../gtchatbridge/sirc.py:632: UnicodeWarning: Unicode equal comparison failed to convert both arguments to Unicode - interpreting them as being unequal
+          if nick in IRC_except: continue
 """
 
 import sys
