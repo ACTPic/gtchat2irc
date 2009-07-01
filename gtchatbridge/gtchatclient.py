@@ -236,7 +236,10 @@ class GTChatConnector(threading.Thread):
             except sirc.IRCException:
                 pass
         for user in parting_users:
-            self.gci.part(user)
+            try:
+                self.gci.part(user)
+            except sirc.IRCException:
+                pass
         for user, status in away_dict.items():
             self.gci.set_away(user, [None, "XXX Unknown"][status]) # XXX
         self.users = new_set
