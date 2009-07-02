@@ -262,6 +262,8 @@ def generate_join_func(incoming):
 
 def generate_away_func(outgoing):
     def event_away(user, msg):
+        if config.suppress_away_msg and msg:
+            msg = ""
         outgoing.set_away(msg)
     return event_away
 
