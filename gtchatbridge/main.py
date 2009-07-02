@@ -117,6 +117,8 @@ class GTChatUser(sirc.DummyUser):
                 msg = msgparts[3]
             else:
                 msg = None
+            if config.suppress_away_msg:
+                msg = None
             self.outgoing_proxy.set_away(msg)
         elif m_cmd in ('notice', 'join', 'mode', 'part'):
             pass # ignore
