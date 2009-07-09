@@ -824,6 +824,11 @@ class IRCHandler(threading.Thread):
         real = "[...]"
         self.s.sendall(':%s 311 %s %s %s %s * :%s\n' % (self.host, who, who, "dummyuser", "bridge.invalid", real))
         self.s.sendall(':%s 312 %s %s %s :%s\n' % (self.host, who, who, "chat.invalid", "GTChat bridge"))
+        try:
+            if user.data['away'] != None:
+                self.s.sendall(':%s 301 %s %s :%s\n' % (self.host, who, who, user.data['away']))
+        except KeyError:
+            print "away data not found for " + who
         self.s.sendall(':%s 318 %s %s :End of /WHOIS list\n' % (self.host, who, who))
 
     def IRC_away(self, (reason,)):

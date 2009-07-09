@@ -85,9 +85,15 @@ class GTChatIncoming(object):
 
     def _get_user(self, nick):
         nick_sanitized = self.sanitize_nick(nick)
-        user = self.users.setdefault(nick, GTChatUser(nick_sanitized, "", self.server, self, self.channel))
-        return user
+        try:
+            user = self.server.nicks[nick_sanitized]
+        except:
+            user = None
 
+        if user == None:
+            user = GTChatUser(nick_sanitized, "", self.server, self, self.channel)
+
+        return self.users.setdefault(nick, user)
 
 class GTChatUser(sirc.DummyUser):
     def __init__(self, nick, ID, server, incoming_proxy, channel):
