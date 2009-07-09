@@ -821,10 +821,10 @@ class IRCHandler(threading.Thread):
 
         try: user = self.nicks[who]
         except: raise IRCException("No such user")
-        u_user, u_host, u_server, u_real = user.data['user']
-        self.s.sendall(':%s 311 %s %s %s * :%s\n' % (self.host, who, u_user, u_host, u_real))
-        self.s.sendall(':%s 312 %s :\n' % (self.host, u_server))
-        self.s.sendall(':%s 318 %s %s :End of /WHOIS list\n' % (self.host, self.data['nick'], who))
+        real = "[...]"
+        self.s.sendall(':%s 311 %s %s %s %s * :%s\n' % (self.host, who, who, "dummyuser", "bridge.invalid", real))
+        self.s.sendall(':%s 312 %s %s %s :%s\n' % (self.host, who, who, "chat.invalid", "GTChat bridge"))
+        self.s.sendall(':%s 318 %s %s :End of /WHOIS list\n' % (self.host, who, who))
 
     def IRC_away(self, (reason,)):
         """0-1"""
