@@ -5,6 +5,7 @@
 # Released unter the new BSD license.
 
 
+import os
 import threading
 import socket
 
@@ -1187,6 +1188,7 @@ class IRCServer:
         finally:
             print "Closing server socket..."
             self.s.close()
+            os._exit(1)
 
 if __name__ == '__main__':
     port = 6667
